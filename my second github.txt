@@ -1,0 +1,236 @@
+#include <iostream>
+#include <sstream> // For parsing pickup time
+using namespace std;
+
+// ========== PERSON BASE CLASS ==========
+class Person {
+protected:
+    string name;
+    string address;
+public:
+    void setDetails(string n, string a) {
+        name = n;
+        address = a;
+    }
+
+    void showDetails(string role = "Customer") {
+        cout << role << " Name: " << name << endl;
+        cout << role << " Address: " << address << endl;
+    }
+};
+
+// ========== VEHICLE ABSTRACT CLASS ==========
+class Vehicle {
+public:
+    virtual void display() = 0;
+    virtual float calculateFare(float distance, bool isRoundTrip) = 0;
+    virtual ~Vehicle() {}
+};
+
+// ========== VEHICLE TYPES ==========
+class Bike : public Vehicle {
+public:
+    void display() override {
+        cout << "Vehicle: Bike (Rs.10/km)" << endl;
+    }
+
+    float calculateFare(float distance, bool isRoundTrip) override {
+        float fare = distance * 10;
+        if (isRoundTrip) {
+    return fare * 2;
+} else {
+    return fare;
+}
+    }
+};
+
+class Car : public Vehicle {
+public:
+    void display() override {
+        cout << "Vehicle: Car (Rs.20/km)" << endl;
+    }
+
+    float calculateFare(float distance, bool isRoundTrip) override {
+        float fare = distance * 20;
+        if (isRoundTrip) {
+            return fare * 2;
+        } else {
+            return fare;
+        }
+    }
+};
+
+class LandCruiser : public Vehicle {
+public:
+    void display() override {
+        cout << "Vehicle: Land Cruiser (Rs.40/km)" << endl;
+    }
+
+    float calculateFare(float distance, bool isRoundTrip) override {
+        float fare = distance * 40;
+        if (isRoundTrip) {
+            return fare * 2;
+        } else {
+            return fare;
+        }
+    }
+};
+
+// ========== DRIVER CLASS ==========
+class Driver : public Person {
+private:
+    string licenseNumber;
+    Vehicle* assignedVehicle;
+public:
+    void setDriverDetails(string n, string a, string lic) {
+        setDetails(n, a);
+        licenseNumber = lic;
+    }
+
+    void assignVehicle(Vehicle* v) {
+        assignedVehicle = v;
+    }
+
+    void showDriverDetails() {
+        cout << "Driver Name: " << name << endl;
+        cout << "Driver City: " << address << endl;
+        cout << "License Number: " << licenseNumber << endl;
+        if (assignedVehicle) {
+            assignedVehicle->display();
+        }
+    }
+};
+
+// ========== RIDE CLASS ==========
+class Ride {
+private:
+    static int nextRideID;
+    int rideID;
+    Person* user;
+    Driver* driver;
+    Vehicle* vehicle;
+    string pickupTime;
+    bool isRoundTrip;
+    float distance;
+
+public:
+    Ride(Person* u, Driver* d, Vehicle* v, string time, bool roundTrip, float dist)
+        : user(u), driver(d), vehicle(v), pickupTime(time),
+          isRoundTrip(roundTrip), distance(dist) {
+        rideID = ++nextRideID;
+    }
+
+    void displayRideDetails() {
+        cout << "\n========== Ride Details ==========\n";
+        cout << "Ride ID: " << rideID << endl;
+
+        cout << "\n--- Rider Information ---\n";
+        user->showDetails("Rider");
+
+        cout << "\n--- Driver & Vehicle ---\n";
+        driver->showDriverDetails();
+
+        cout << "Pickup Time: " << pickupTime << endl;
+        cout << "Distance: " << distance << " km" << endl;
+        cout << "Trip Type: " << (isRoundTrip ? "Round-trip" : "One-way") << endl;
+
+        float totalFare = vehicle->calculateFare(distance, isRoundTrip);
+
+        // Parse pickup time
+        int hour, minute;
+        char colon;
+        istringstream iss(pickupTime);
+        iss >> hour >> colon >> minute;
+
+        // Apply peak hour surcharge
+        if (hour >= 12 && hour < 15) {
+            totalFare *= 1.3;
+            cout << "(Peak Hour Charges Applied: 30% extra)\n";
+        }
+
+        cout << "Total Fare: Rs. " << totalFare << endl;
+    }
+};
+
+int Ride::nextRideID = 0;
+
+// ========== MAIN FUNCTION ==========
+int main() {
+    // Predefined drivers
+    Driver driver1, driver2;
+    driver1.setDriverDetails("Ali Khan", "Islamabad", "LIC12345");
+    driver2.setDriverDetails("Ahmed Raza", "Rawalpindi", "LIC67890");
+
+    // Predefined vehicles
+    Bike bike;
+    Car car;
+    LandCruiser lc;
+
+    char repeat;
+
+    do {
+        Person user;
+        string name, address;
+        int vehicleChoice, tripChoice;
+        float distance;
+
+        if(repeat=='Y'|| repeat=='y')
+        {
+            cout << "\n========== New Ride Booking ==========\n";
+            cin.ignore(); // Clear leftover input
+        }
+        cout << "Enter your name: ";
+        cin>>name;
+        cout << "Enter your address: ";
+        cin>>address;
+        user.setDetails(name, address);
+
+        cout << "\nAvailable Vehicles:\n1. Bike\n2. Car\n3. Land Cruiser\nSelect vehicle: ";
+        cin >> vehicleChoice;
+
+        cout << "Enter distance to travel (in km): ";
+        cin >> distance;
+
+        cout << "Trip Type:\n1. One-way\n2. Round-trip\nChoose trip type: ";
+        cin >> tripChoice;
+        bool isRoundTrip = (tripChoice == 2);
+
+        Vehicle* selectedVehicle = nullptr;
+        Driver* selectedDriver = nullptr;
+
+        switch(vehicleChoice) {
+            case 1:
+                selectedVehicle = &bike;
+                selectedDriver = &driver1;
+                break;
+            case 2:
+                selectedVehicle = &car;
+                selectedDriver = &driver2;
+                break;
+            case 3:
+                selectedVehicle = &lc;
+                selectedDriver = &driver1;
+                break;
+            default:
+                cout << "Invalid vehicle choice.\n";
+                continue;
+        }
+
+        selectedDriver->assignVehicle(selectedVehicle);
+
+        string pickupTime;
+        cout << "Enter pickup time (HH:MM): ";
+        cin >> pickupTime;
+
+        Ride bookedRide(&user, selectedDriver, selectedVehicle, pickupTime, isRoundTrip, distance);
+        bookedRide.displayRideDetails();
+
+        cout << "\nBooking Confirmed! Your ride will arrive shortly. Thank you!\n";
+        cout << "\nWould you like to book another ride? (Y/N): ";
+        cin >> repeat;
+
+    } while (repeat == 'Y' || repeat == 'y');
+
+    cout << "\nThank you for using our service. Goodbye!\n";
+    return 0;
+}
